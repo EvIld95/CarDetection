@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def calculateMedian(table):
     sum = 0
     amount = 0
@@ -11,11 +12,11 @@ def calculateMedian(table):
     return sum // amount
 
 
-cap = cv2.VideoCapture('video.mov')
+cap = cv2.VideoCapture('converted.mov')
 
 fgbg = cv2.createBackgroundSubtractorMOG2()
 fgbg2 = cv2.createBackgroundSubtractorKNN()
-#carCascade = cv2.CascadeClassifier('cars.xml')
+# carCascade = cv2.CascadeClassifier('cars.xml')
 
 params = cv2.SimpleBlobDetector_Params()
 params.blobColor = 255
@@ -26,7 +27,7 @@ detector = cv2.SimpleBlobDetector_create(parameters=params)
 while True:
     _, frame = cap.read()
     media = cv2.medianBlur(frame, 3)
-    blur = cv2.GaussianBlur(frame, (5,5),3)
+    blur = cv2.GaussianBlur(frame, (5, 5), 3)
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     fgmask2 = fgbg2.apply(media)
@@ -35,8 +36,8 @@ while True:
 
     close = cv2.morphologyEx(fgmask2, cv2.MORPH_CLOSE, kernel)
     opening = cv2.morphologyEx(close, cv2.MORPH_OPEN, kernel)
-    #erode = cv2.erode(opening, (10,10))
-    #dilation = cv2.dilate(opening, kernel, iterations=3)
+    # erode = cv2.erode(opening, (10,10))
+    # dilation = cv2.dilate(opening, kernel, iterations=3)
     thresh = 200
     binary = (opening > thresh) * 255
     image = np.uint8(binary)
@@ -49,7 +50,6 @@ while True:
             counter = counter + 1
             keypoint.class_id = counter
             print('detected {}'.format(counter))
-
 
     im_with_keypoints = cv2.drawKeypoints(image, keypoints, np.array([]), (0, 0, 255))
 
@@ -70,9 +70,9 @@ while True:
 
 
 
-    cv2.line(im_with_keypoints, (0,380), (500,380), (255,0,0))
-    cv2.imshow('fg',im_with_keypoints)
-    cv2.imshow('org',frame)
+    cv2.line(im_with_keypoints, (0, 380), (500, 380), (255, 0, 0))
+    cv2.imshow('fg', im_with_keypoints)
+    cv2.imshow('org', frame)
 
     k = cv2.waitKey(30) & 0xff
     if k == 27:
