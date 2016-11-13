@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 
+
 def calculateMedian(table):
     sum = 0
     amount = 0
@@ -15,7 +16,7 @@ cap = cv2.VideoCapture('converted.mov')
 
 fgbg = cv2.createBackgroundSubtractorMOG2()
 fgbg2 = cv2.createBackgroundSubtractorKNN()
-#carCascade = cv2.CascadeClassifier('cars.xml')
+# carCascade = cv2.CascadeClassifier('cars.xml')
 
 params = cv2.SimpleBlobDetector_Params()
 params.blobColor = 255
@@ -38,7 +39,7 @@ def checkCarInDistanceExists(x,y):
 while True:
     _, frame = cap.read()
     media = cv2.medianBlur(frame, 3)
-    blur = cv2.GaussianBlur(frame, (5,5),3)
+    blur = cv2.GaussianBlur(frame, (5, 5), 3)
 
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     fgmask2 = fgbg2.apply(media)
