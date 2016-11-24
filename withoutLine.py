@@ -1,3 +1,5 @@
+from datetime import date, datetime, time
+
 import cv2
 import numpy as np
 
@@ -12,7 +14,7 @@ def calculateAveragePixelWhitePower(table):
     return sum // amount
 
 
-cap = cv2.VideoCapture('converted.mov')
+cap = cv2.VideoCapture('conv.mov')
 width = cap.get(3)
 height = cap.get(4)
 
@@ -28,14 +30,14 @@ toDelete = []
 identifier = 0
 distanceAcc = 30
 yStartCountingLocation = height // 2
-yDeletObjectLocation = 340 #350
-numberOfCarsMovedLine = 0
+#yDeletObjectLocation = 340 #350
+numberOfCars = 0
 
 drawLine = True
-
+frameCounter = 0
 def checkCarInDistanceExists(x,y):
     for carKey in carKeyPoints.keys():
-        xx, yy = carKeyPoints[carKey]
+        xx, yy, _, _, _  = carKeyPoints[carKey]
         if abs(x - xx) < distanceAcc and abs(y - yy) < distanceAcc:
             return True
     return False
@@ -63,7 +65,7 @@ while True:
     #keypoints = detector.detect(image)
     #im_with_keypoints = cv2.drawKeypoints(image, keypoints, np.array([]), (0, 0, 255))
 
-    cars = carCascade.detectMultiScale(gray, 1.03, 3)
+    cars = carCascade.detectMultiScale(gray, 1.02, 3)
     realCars = []
 
     for (x, y, w, h) in cars:
@@ -81,41 +83,63 @@ while True:
 
 
     mappedCars = map(lambda tuple: (tuple[0]+(tuple[2]//2), tuple[1]+(tuple[3]//2)), realCars)
-    cv2.putText(frame, 'Samochody ktore przejechaly linie: {}'.format(numberOfCarsMovedLine), (int(20), int(20)), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
-    cv2.putText(frame, 'Samochody zaindeksowane: {}'.format(identifier), (int(20), int(40)), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
+    #cv2.putText(frame, 'Samochody ktore przejechaly linie: {}'.format(numberOfCarsMovedLine), (int(20), int(20)), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
+    cv2.putText(frame, 'Samochody zliczone: {}'.format(numberOfCars), (int(20), int(40)), cv2.FONT_HERSHEY_PLAIN, 1, (255, 0, 0), 1)
 
 
     carsInDistance = list(filter(lambda x: x[1] > yStartCountingLocation, mappedCars))
-    filtered = list(filter(lambda x: x[1] < yDeletObjectLocation, carsInDistance))
-    for keypoint in filtered:
-        x, y = keypoint
-        if checkCarInDistanceExists(x,y) == False:
-            carKeyPoints[identifier] = keypoint
-            #cv2.putText(frame, '{}'.format(identifier), (int(x), int(y)), cv2.FONT_HERSHEY_PLAIN, 1,
-            #                (0, 255, 0), 2)
-            identifier = identifier + 1
+    #filtered = list(filter(lambda x: x[1] < yDeletObjectLocation, carsInDistance))
+    # for keypoint in mappedCars:
+    #     x, y, counter = keypoint
+    #     if checkCarInDistanceExists(x,y) == False:
+    #         carKeyPoints[identifier] = keypoint
+    #         #cv2.putText(frame, '{}'.format(identifier), (int(x), int(y)), cv2.FONT_HERSHEY_PLAIN, 1,
+    #         #                (0, 255, 0), 2)
+    #         identifier = identifier + 1
+
+
+
 
     for carKey in carsInDistance:
+        newX, newY = carKey
         for key in carKeyPoints.keys():
-            newX, newY = carKey
-            oldX, oldY = carKeyPoints[key]
+            oldX, oldY, oldCounter, oldPosition, _ = carKeyPoints[key]
             if abs(newX - oldX) < distanceAcc and abs(newY - oldY) < distanceAcc:
-                if newY > yDeletObjectLocation:
-                    print('USUWAM {}'.format(key))
-                    numberOfCarsMovedLine = numberOfCarsMovedLine + 1
-                    toDelete.append(key)
-                else:
-                    carKeyPoints[key] = carKey
-                    cv2.putText(frame, '{}'.format(key), (int(newX), int(newY)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1)
+                carKeyPoints[key] = (newX, newY, oldCounter, (oldX, oldY), datetime.now())
+                cv2.putText(frame, '{}'.format(key), (int(newX), int(newY)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 1)
+            # elif abs(oldX - oldPosition[0]) < 1 and abs(oldY - oldPosition[1]) < 1:
+            #     if oldCounter > 2:
+            #         # numberOfCarsMovedLine = numberOfCarsMovedLine + 1
+            #         toDelete.append(key)
+            #     carKeyPoints[key] = (oldX,oldY,oldCounter+1, oldPosition)
+
+    for key in carKeyPoints.keys():
+        oldX, oldY, oldCounter, oldPosition, lastUpdate = carKeyPoints[key]
+        diff = (datetime.now() - lastUpdate).total_seconds()
+        if abs(oldX - oldPosition[0]) < 1 and abs(oldY - oldPosition[1]) < 1:
+            if oldCounter > 2:
+                toDelete.append(key)
+            carKeyPoints[key] = (oldX, oldY, oldCounter + 1, oldPosition, lastUpdate)
+        elif diff > 2:
+            numberOfCars = numberOfCars + 1
+            toDelete.append(key)
+
+    for keypoint in carsInDistance:
+        x, y = keypoint
+        if checkCarInDistanceExists(x, y) == False:
+            carKeyPoints[identifier] = (x,y,0, (x,y), datetime.now())
+            # cv2.putText(frame, '{}'.format(identifier), (int(x), int(y)), cv2.FONT_HERSHEY_PLAIN, 1, (0, 255, 0), 2)
+            identifier = identifier + 1
 
     for delete in set(toDelete):
+        print('USUWAM {}'.format(delete))
         del(carKeyPoints[delete])
 
     toDelete = []
 
-    cv2.line(frame, (0,yDeletObjectLocation), (int(width),yDeletObjectLocation), (255,0,0))
+    #cv2.line(frame, (0,yDeletObjectLocation), (int(width),yDeletObjectLocation), (255,0,0))
     cv2.imshow('org', frame)
-
+    frameCounter = frameCounter + 1
     k = cv2.waitKey(30) & 0xff
     if k == 27:
         break
